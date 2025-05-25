@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "572478759678",
+    "project_id": "soundrack24",
+    "storage_bucket": "soundrack24.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:572478759678:android:4f523a10f1d1fa53dc3baf",
+        "android_client_info": {
+          "package_name": "com.example.soundrack24"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "572478759678-e3fbajvbedia9l5etle8pv63jt3isdgc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.soundrack24",
+            "certificate_hash": "ff812bb59c0b58b984e3abedc87bd2636841e928"
+          }
+        },
+        {
+          "client_id": "572478759678-7hgffvcnnj9hd55a9ido1c6avruhds1i.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB5N1uRMjk5T2VJ3Buiy_GigVcSmfq7Zxc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "572478759678-7hgffvcnnj9hd55a9ido1c6avruhds1i.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

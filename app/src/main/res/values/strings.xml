@@ -2,4 +2,6 @@
     <string name="app_name">SoundRack24</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="default_web_client_id">
+572478759678-7hgffvcnnj9hd55a9ido1c6avruhds1i.apps.googleusercontent.com</string>
 </resources>

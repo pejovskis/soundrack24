@@ -1,5 +1,6 @@
 package com.example.soundrack24;
 
+import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
@@ -26,6 +27,8 @@ import android.media.midi.MidiDeviceInfo;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+
+import com.google.firebase.auth.FirebaseAuth;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -75,12 +78,17 @@ public class MainLayout extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
+
+        // Check login before loading layout
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+            requireActivity().startActivity(new Intent(requireContext(), LoginActivity.class));
+            requireActivity().finish();
+            return;
         }
+
         initMidi();
     }
+
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
