@@ -341,33 +341,64 @@ public class MainLayout extends Fragment {
         layout.addView(pInput);
         layout.addView(iInput);
 
-        new android.app.AlertDialog.Builder(ctx)
+        android.app.AlertDialog dialog = new android.app.AlertDialog.Builder(ctx)
                 .setTitle("Assign Slot " + favIndex)
                 .setView(layout)
-                .setPositiveButton("Save", (dialog, which) -> {
-                    String sName = name.getText().toString().trim();
-                    Ulocation ulocation = new Ulocation();
-                    Plocation plocation = new Plocation();
-                    Ilocation ilocation = new Ilocation();
-
-                    String sULocation = "U" + uInput.getText().toString().trim();
-                    String sPLocation = "P" + pInput.getText().toString().trim();
-                    String sILocation = "I" + iInput.getText().toString().trim();
-
-                    ulocation.loadUlocationByName(sULocation, getContext());
-                    plocation.loadPlocationByName(sPLocation, getContext());
-                    ilocation.loadIlocationByName(sILocation, getContext());
-
-                    if (ulocation != null && plocation != null && ilocation != null) {
-                        FavPerformance favPerformance = new FavPerformance(sName, ulocation, plocation, ilocation, favIndex);
-                        favPerformance.saveOrUpdate(getContext());
-                        populateMainLayout(); // Refresh to sync visual state
-                    } else {
-                        targetBtn.setText("error");
-                    }
-                })
+                .setPositiveButton("Save", null)
                 .setNegativeButton("Cancel", null)
                 .show();
+
+        dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String sName = name.getText().toString().trim();
+            String uStr = uInput.getText().toString().trim();
+            String pStr = pInput.getText().toString().trim();
+            String iStr = iInput.getText().toString().trim();
+
+            boolean valid = true;
+
+            if (sName.length() > 25) {
+                name.setError("Max 25 characters allowed");
+                valid = false;
+            }
+
+            if (!uStr.matches("^\\d{1,2}$") || Integer.parseInt(uStr) > 99) {
+                uInput.setError("Enter a number 0–99");
+                valid = false;
+            }
+
+            if (!pStr.matches("^\\d{1,2}$") || Integer.parseInt(pStr) > 99) {
+                pInput.setError("Enter a number 0–99");
+                valid = false;
+            }
+
+            if (!iStr.matches("^\\d{1,2}$") || Integer.parseInt(iStr) > 99) {
+                iInput.setError("Enter a number 0–99");
+                valid = false;
+            }
+
+            if (!valid) return;
+
+            Ulocation ulocation = new Ulocation();
+            Plocation plocation = new Plocation();
+            Ilocation ilocation = new Ilocation();
+
+            String sULocation = "U" + uStr;
+            String sPLocation = "P" + pStr;
+            String sILocation = "I" + iStr;
+
+            ulocation.loadUlocationByName(sULocation, getContext());
+            plocation.loadPlocationByName(sPLocation, getContext());
+            ilocation.loadIlocationByName(sILocation, getContext());
+
+            if (ulocation != null && plocation != null && ilocation != null) {
+                FavPerformance favPerformance = new FavPerformance(sName, ulocation, plocation, ilocation, favIndex);
+                favPerformance.saveOrUpdate(getContext());
+                populateMainLayout();
+                dialog.dismiss();
+            } else {
+                targetBtn.setText("error");
+            }
+        });
     }
 
     private Drawable getDefaultButtonDrawable() {

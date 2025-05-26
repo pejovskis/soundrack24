@@ -115,7 +115,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public void populateUlocationTable() {
         SQLiteDatabase db = this.getWritableDatabase();
         String value = "U";
-        int uNumber = 30;
+        int uNumber = 99;
 
         for (int i = 1; i <= uNumber; i++) {
             ContentValues contentValues = new ContentValues();
@@ -127,7 +127,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public void populatePlocationTable() {
         SQLiteDatabase db = this.getWritableDatabase();
         String value = "P";
-        int pNumber = 20;
+        int pNumber = 99;
 
         for (int i = 1; i <= pNumber; i++) {
             ContentValues contentValues = new ContentValues();
@@ -139,7 +139,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public void populateIlocationTable() {
         SQLiteDatabase db = this.getWritableDatabase();
         String value = "I";
-        int iNumber = 20;
+        int iNumber = 99;
 
         for (int i = 1; i <= iNumber; i++) {
             ContentValues contentValues = new ContentValues();
