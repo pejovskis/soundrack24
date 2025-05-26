@@ -27,6 +27,7 @@ import android.media.midi.MidiDeviceInfo;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.google.firebase.auth.FirebaseAuth;
 
@@ -61,6 +62,8 @@ public class MainLayout extends Fragment {
     private MidiInputPort midiInputPort;
     private List<FavPerformance> favPerformances;
     private TextView selectedFavButton;
+    private FavPerformance swapBuffer = null;
+    private int swapIndex = -1;
 
     public MainLayout() {
         // Required empty public constructor
@@ -346,7 +349,93 @@ public class MainLayout extends Fragment {
                 .setView(layout)
                 .setPositiveButton("Save", null)
                 .setNegativeButton("Cancel", null)
+                .setNeutralButton("Swap", null)
                 .show();
+
+        dialog.getButton(android.app.AlertDialog.BUTTON_NEUTRAL).setOnClickListener(v -> {
+            String sName = name.getText().toString().trim();
+            String uStr = uInput.getText().toString().trim();
+            String pStr = pInput.getText().toString().trim();
+            String iStr = iInput.getText().toString().trim();
+
+            boolean valid = true;
+
+            if (sName.length() > 25) {
+                name.setError("Max 25 characters allowed");
+                valid = false;
+            }
+
+            if (!uStr.matches("^\\d{1,2}$") || Integer.parseInt(uStr) > 99) {
+                uInput.setError("Enter a number 0–99");
+                valid = false;
+            }
+
+            if (!pStr.matches("^\\d{1,2}$") || Integer.parseInt(pStr) > 99) {
+                pInput.setError("Enter a number 0–99");
+                valid = false;
+            }
+
+            if (!iStr.matches("^\\d{1,2}$") || Integer.parseInt(iStr) > 99) {
+                iInput.setError("Enter a number 0–99");
+                valid = false;
+            }
+
+            if (!valid) return;
+
+            Ulocation ulocation = new Ulocation();
+            Plocation plocation = new Plocation();
+            Ilocation ilocation = new Ilocation();
+
+            String sULocation = "U" + uStr;
+            String sPLocation = "P" + pStr;
+            String sILocation = "I" + iStr;
+
+            ulocation.loadUlocationByName(sULocation, getContext());
+            plocation.loadPlocationByName(sPLocation, getContext());
+            ilocation.loadIlocationByName(sILocation, getContext());
+
+            if (ulocation == null || plocation == null || ilocation == null) {
+                targetBtn.setText("error");
+                return;
+            }
+
+            FavPerformance current = new FavPerformance(sName, ulocation, plocation, ilocation, favIndex);
+
+            if (swapBuffer == null) {
+                swapBuffer = current;
+                swapIndex = favIndex;
+
+                targetBtn.setBackground(getSwapSelectedButtonDrawable()); // Highlight button
+                Toast.makeText(ctx, "Slot " + favIndex + " selected to swap", Toast.LENGTH_SHORT).show();
+                dialog.dismiss();
+            } else {
+                int otherIndex = swapIndex;
+                FavPerformance other = swapBuffer;
+
+                // Swap indices regardless of whether current existed or not
+                current.setFavIndex(otherIndex);
+                other.setFavIndex(favIndex);
+
+                // Save new data into both places
+                current.saveOrUpdate(getContext());
+
+                // If overwriting into empty: delete the other slot
+                FavPerformance.deleteByFavIndex(getContext(), otherIndex);
+
+                // Save the swap source (now in new index)
+                other.saveOrUpdate(getContext());
+
+                Toast.makeText(ctx, "Swapped slot " + favIndex + " with slot " + otherIndex, Toast.LENGTH_SHORT).show();
+
+                // Reset
+                swapBuffer = null;
+                swapIndex = -1;
+                selectedFavButton = null;
+
+                populateMainLayout();
+                dialog.dismiss();
+            }
+        });
 
         dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             String sName = name.getText().toString().trim();
@@ -414,6 +503,14 @@ public class MainLayout extends Fragment {
         drawable.setColor(Color.YELLOW); // selected = yellow
         drawable.setCornerRadius(32);
         drawable.setStroke(2, Color.WHITE);
+        return drawable;
+    }
+
+    private Drawable getSwapSelectedButtonDrawable() {
+        GradientDrawable drawable = new GradientDrawable();
+        drawable.setColor(Color.parseColor("#444444")); // darker background
+        drawable.setCornerRadius(32);
+        drawable.setStroke(4, Color.YELLOW); // Yellow border
         return drawable;
     }
 

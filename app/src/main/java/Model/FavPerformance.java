@@ -233,4 +233,13 @@ public class FavPerformance implements Serializable {
         }
     }
 
+    public static void deleteByFavIndex(Context context, int favIndex) {
+        DatabaseHelper dbHelper = DatabaseHelper.getInstance(context);
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+
+        db.delete(TABLE_FAV_PERFORMANCES, COLUMN_FAV_PERFORMANCE_FAV_INDEX + " = ?", new String[]{String.valueOf(favIndex)});
+
+        db.close();
+    }
+
 }
