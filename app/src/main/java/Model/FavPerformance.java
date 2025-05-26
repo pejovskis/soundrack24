@@ -213,14 +213,23 @@ public class FavPerformance implements Serializable {
         contentValues.put(COLUMN_FAV_PERFORMANCE_ILOCATION, this.getIlocation().getId());
         contentValues.put(COLUMN_FAV_PERFORMANCE_FAV_INDEX, this.getFavIndex());
 
-        Cursor cursor = db.rawQuery("SELECT _id FROM " + TABLE_FAV_PERFORMANCES + " WHERE _id=?", new String[]{String.valueOf(this.getId())});
-        boolean exists = cursor.moveToFirst();
-        cursor.close();
+        long existingId = this.id;
 
-        if (exists) {
-            db.update(TABLE_FAV_PERFORMANCES, contentValues, "_id=?", new String[]{String.valueOf(this.getId())});
+        if (existingId == 0) {
+            // Try to load ID from favIndex if not present
+            Cursor findCursor = db.rawQuery("SELECT _id FROM " + TABLE_FAV_PERFORMANCES + " WHERE " + COLUMN_FAV_PERFORMANCE_FAV_INDEX + "=?", new String[]{String.valueOf(this.favIndex)});
+            if (findCursor.moveToFirst()) {
+                existingId = findCursor.getLong(0);
+                this.id = existingId;
+            }
+            findCursor.close();
+        }
+
+        if (existingId > 0) {
+            db.update(TABLE_FAV_PERFORMANCES, contentValues, "_id=?", new String[]{String.valueOf(existingId)});
         } else {
-            db.insert(TABLE_FAV_PERFORMANCES, null, contentValues);
+            long newId = db.insert(TABLE_FAV_PERFORMANCES, null, contentValues);
+            this.id = newId;
         }
     }
 

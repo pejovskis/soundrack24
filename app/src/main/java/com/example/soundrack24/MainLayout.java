@@ -140,34 +140,6 @@ public class MainLayout extends Fragment {
         }, new Handler(Looper.getMainLooper()));
     }
 
-    private void sendStyleChange(int msb, int lsb, int program) throws IOException {
-        Handler handler = new Handler(Looper.getMainLooper());
-
-        handler.postDelayed(() -> {
-            try {
-                midiInputPort.send(new byte[]{(byte) 0xB0, 0x00, (byte) msb}, 0, 3);
-            } catch (IOException e) {
-                Log.e("MIDI", "MSB Send Failed: " + e.getMessage());
-            }
-        }, 150); // Send immediately
-
-        handler.postDelayed(() -> {
-            try {
-                midiInputPort.send(new byte[]{(byte) 0xB0, 0x20, (byte) lsb}, 0, 3);
-            } catch (IOException e) {
-                Log.e("MIDI", "LSB Send Failed: " + e.getMessage());
-            }
-        }, 150); // Wait 167ms before sending LSB
-
-        handler.postDelayed(() -> {
-            try {
-                midiInputPort.send(new byte[]{(byte) 0xC0, (byte) (program - 1)}, 0, 2);
-            } catch (IOException e) {
-                Log.e("MIDI", "Program Change Send Failed: " + e.getMessage());
-            }
-        }, 150); // Wait another 167ms before sending Program Change
-    }
-
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -381,9 +353,6 @@ public class MainLayout extends Fragment {
                     if (ulocation != null && plocation != null && ilocation != null) {
                         FavPerformance favPerformance = new FavPerformance(sName, ulocation, plocation, ilocation, favIndex);
                         favPerformance.saveOrUpdate(getContext());
-                        targetBtn.setText(sName);
-                        targetBtn.setTextColor(Color.WHITE);
-                        targetBtn.setBackground(getDefaultButtonDrawable());
                         populateMainLayout(); // Refresh to sync visual state
                     } else {
                         targetBtn.setText("error");
