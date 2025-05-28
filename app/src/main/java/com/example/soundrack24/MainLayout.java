@@ -55,7 +55,8 @@ public class MainLayout extends Fragment {
     private FavPerformance swapBuffer = null;
     private int swapIndex = -1;
 
-    public MainLayout() {}
+    public MainLayout() {
+    }
 
     public static MainLayout newInstance(String param1, String param2) {
         MainLayout fragment = new MainLayout();
@@ -104,7 +105,8 @@ public class MainLayout extends Fragment {
         try {
             if (midiInputPort != null) midiInputPort.close();
             if (midiDevice != null) midiDevice.close();
-        } catch (IOException ignored) {}
+        } catch (IOException ignored) {
+        }
     }
 
     private void sendPerformanceChange(int msb, int lsb, int program) throws IOException {
@@ -112,17 +114,20 @@ public class MainLayout extends Fragment {
         handler.postDelayed(() -> {
             try {
                 midiInputPort.send(new byte[]{(byte) 0xB0, 0x00, (byte) msb}, 0, 3);
-            } catch (IOException ignored) {}
+            } catch (IOException ignored) {
+            }
         }, 150);
         handler.postDelayed(() -> {
             try {
                 midiInputPort.send(new byte[]{(byte) 0xB0, 0x20, (byte) lsb}, 0, 3);
-            } catch (IOException ignored) {}
+            } catch (IOException ignored) {
+            }
         }, 150);
         handler.postDelayed(() -> {
             try {
                 midiInputPort.send(new byte[]{(byte) 0xC0, (byte) program}, 0, 2);
-            } catch (IOException ignored) {}
+            } catch (IOException ignored) {
+            }
         }, 150);
     }
 
@@ -130,7 +135,8 @@ public class MainLayout extends Fragment {
         if (midiInputPort == null) return;
         try {
             sendPerformanceChange(msb, lsb, program);
-        } catch (IOException ignored) {}
+        } catch (IOException ignored) {
+        }
     }
 
     private int dpToPx(Context context, int dp) {
@@ -181,9 +187,12 @@ public class MainLayout extends Fragment {
         existing.loadFavPerformanceByFavIndex(favIndex, ctx);
 
         if (existing.getName() != null) name.setText(existing.getName());
-        if (existing.getUlocation() != null) uInput.setText(existing.getUlocation().getName().replace("U", ""));
-        if (existing.getPlocation() != null) pInput.setText(existing.getPlocation().getName().replace("P", ""));
-        if (existing.getIlocation() != null) iInput.setText(existing.getIlocation().getName().replace("I", ""));
+        if (existing.getUlocation() != null)
+            uInput.setText(existing.getUlocation().getName().replace("U", ""));
+        if (existing.getPlocation() != null)
+            pInput.setText(existing.getPlocation().getName().replace("P", ""));
+        if (existing.getIlocation() != null)
+            iInput.setText(existing.getIlocation().getName().replace("I", ""));
 
         layout.addView(name);
         layout.addView(uInput);
@@ -206,28 +215,40 @@ public class MainLayout extends Fragment {
         dialog.show();
 
         dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(v -> {
-            try {
-                Ulocation u = getU(ctx, uInput.getText().toString());
-                Plocation p = getP(ctx, pInput.getText().toString());
-                Ilocation i = getI(ctx, iInput.getText().toString());
+            String nameText = name.getText().toString().trim();
+            String uRaw = uInput.getText().toString().trim();
+            String pRaw = pInput.getText().toString().trim();
+            String iRaw = iInput.getText().toString().trim();
 
-                if (u == null || u.getName() == null || p == null || p.getName() == null || i == null || i.getName() == null) {
-                    Toast.makeText(ctx, "Invalid location(s)", Toast.LENGTH_SHORT).show();
-                    return;
-                }
+            Ulocation u = null;
+            Plocation p = null;
+            Ilocation i = null;
 
-                swapBuffer = new FavPerformance(
-                        name.getText().toString(),
-                        u, p, i,
-                        favIndex
-                );
-                swapIndex = favIndex;
-                targetBtn.setBackground(getSwapSelectedButtonDrawable());
-                Toast.makeText(ctx, "Selected slot " + favIndex + " for swap", Toast.LENGTH_SHORT).show();
-                dialog.dismiss();
-            } catch (Exception e) {
-                Toast.makeText(ctx, "Invalid data", Toast.LENGTH_SHORT).show();
+            // Try from input fields
+            if (!uRaw.isEmpty()) u = getU(ctx, uRaw);
+            if (!pRaw.isEmpty()) p = getP(ctx, pRaw);
+            if (!iRaw.isEmpty()) i = getI(ctx, iRaw);
+
+            // If still empty → fallback to existing DB slot
+            if (u == null || p == null || i == null) {
+                FavPerformance fallback = new FavPerformance();
+                fallback.loadFavPerformanceByFavIndex(favIndex, ctx);
+                if (u == null) u = fallback.getUlocation();
+                if (p == null) p = fallback.getPlocation();
+                if (i == null) i = fallback.getIlocation();
+                if (nameText.isEmpty()) nameText = fallback.getName();
             }
+
+            if (u == null || p == null || i == null) {
+                Toast.makeText(ctx, "Missing location info", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            swapBuffer = new FavPerformance(nameText, u, p, i, favIndex);
+            swapIndex = favIndex;
+            targetBtn.setBackground(getSwapSelectedButtonDrawable());
+            Toast.makeText(ctx, "Selected slot " + favIndex + " for swap", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
         });
 
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
@@ -306,6 +327,7 @@ public class MainLayout extends Fragment {
             FavPerformance currentFp = fp;
 
             if (currentFp != null && currentFp.getUlocation() != null && currentFp.getPlocation() != null && currentFp.getIlocation() != null) {
+                // good
                 btn.setText(currentFp.getName() != null && !currentFp.getName().isEmpty() ? currentFp.getName() : "" + slot);
             } else {
                 btn.setText("");
@@ -313,65 +335,49 @@ public class MainLayout extends Fragment {
 
             btn.setOnClickListener(v -> {
                 if (swapBuffer != null && swapIndex != -1) {
-                    FavPerformance original = new FavPerformance();
-                    original.loadFavPerformanceByFavIndex(favIndex, getContext());
-
+                    // Save swap buffer to the new selected slot
                     FavPerformance swapCopy = new FavPerformance(
                             swapBuffer.getName(),
                             swapBuffer.getUlocation(),
                             swapBuffer.getPlocation(),
                             swapBuffer.getIlocation(),
-                            favIndex
+                            favIndex // target slot
                     );
-
-                    FavPerformance originalCopy = null;
-                    if (original.getId() != 0) {
-                        originalCopy = new FavPerformance(
-                                original.getName(),
-                                original.getUlocation(),
-                                original.getPlocation(),
-                                original.getIlocation(),
-                                swapIndex
-                        );
-                    }
-
                     swapCopy.saveOrUpdate(getContext());
-                    if (originalCopy != null) {
-                        originalCopy.saveOrUpdate(getContext());
-                    } else {
-                        FavPerformance.deleteByFavIndex(getContext(), swapIndex);
-                    }
+
+                    // Delete the original (from where swapBuffer came)
+                    FavPerformance.deleteByFavIndex(getContext(), swapIndex);
 
                     swapBuffer = null;
                     swapIndex = -1;
                     selectedFavButton = null;
                     populateMainLayout();
                     return;
-            }
-
-            if (currentFp != null) {
-                if (selectedFavButton != null) {
-                    selectedFavButton.setBackground(getDefaultButtonDrawable());
-                    selectedFavButton.setTextColor(Color.WHITE);
                 }
-                selectedFavButton = btn;
-                btn.setBackground(getSelectedButtonDrawable());
-                btn.setTextColor(Color.BLACK);
-                int u = Integer.parseInt(currentFp.getUlocation().getName());
-                int p = Integer.parseInt(currentFp.getPlocation().getName());
-                int iLoc = Integer.parseInt(currentFp.getIlocation().getName());
-                int lsb = u - 1;
-                int program = 1 + (p - 1) * 8 + (iLoc - 1);
-                setKeyboardPerformance(17, lsb, program - 1);
-            }
-        });
 
-        btn.setOnLongClickListener(v -> {
-            showMidiAssignDialog(btn, favIndex);
-            return true;
-        });
+                if (currentFp != null) {
+                    if (selectedFavButton != null) {
+                        selectedFavButton.setBackground(getDefaultButtonDrawable());
+                        selectedFavButton.setTextColor(Color.WHITE);
+                    }
+                    selectedFavButton = btn;
+                    btn.setBackground(getSelectedButtonDrawable());
+                    btn.setTextColor(Color.BLACK);
+                    int u = Integer.parseInt(currentFp.getUlocation().getName());
+                    int p = Integer.parseInt(currentFp.getPlocation().getName());
+                    int iLoc = Integer.parseInt(currentFp.getIlocation().getName());
+                    int lsb = u - 1;
+                    int program = 1 + (p - 1) * 8 + (iLoc - 1);
+                    setKeyboardPerformance(17, lsb, program - 1);
+                }
+            });
 
-        rowLayout.addView(btn);
+            btn.setOnLongClickListener(v -> {
+                showMidiAssignDialog(btn, favIndex);
+                return true;
+            });
+
+            rowLayout.addView(btn);
+        }
     }
-}
 }
