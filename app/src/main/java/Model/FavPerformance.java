@@ -203,6 +203,10 @@ public class FavPerformance implements Serializable {
     }
 
     public void saveOrUpdate(Context context) {
+        if (ulocation == null || plocation == null || ilocation == null) {
+            // Don't save incomplete data
+            return;
+        }
         dbHelper = DatabaseHelper.getInstance(context);
         SQLiteDatabase db = dbHelper.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
