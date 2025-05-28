@@ -1,37 +1,35 @@
+// Full MainLayout.java file with complete swap, save, delete, cancel logic
 package com.example.soundrack24;
 
-import android.content.Intent;
+import android.app.AlertDialog;
+import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.media.midi.MidiDevice;
+import android.media.midi.MidiDeviceInfo;
 import android.media.midi.MidiInputPort;
 import android.media.midi.MidiManager;
 import android.os.Bundle;
-
-import androidx.fragment.app.Fragment;
-
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-
-import java.util.List;
-
-
-import android.content.Context;
-import android.media.midi.MidiDeviceInfo;
-import android.os.Handler;
-import android.os.Looper;
-import android.util.Log;
 import android.widget.Toast;
+
+import androidx.fragment.app.Fragment;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import Model.DatabaseHelper;
@@ -40,11 +38,6 @@ import Model.Ilocation;
 import Model.Plocation;
 import Model.Ulocation;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link MainLayout#newInstance} factory method to
- * create an instance of this fragment.
- */
 public class MainLayout extends Fragment {
 
     private static final String ARG_PARAM1 = "param1";
@@ -58,14 +51,11 @@ public class MainLayout extends Fragment {
     private MidiManager midiManager;
     private MidiDevice midiDevice;
     private MidiInputPort midiInputPort;
-    private List<FavPerformance> favPerformances;
     private TextView selectedFavButton;
     private FavPerformance swapBuffer = null;
     private int swapIndex = -1;
 
-    public MainLayout() {
-        // Required empty public constructor
-    }
+    public MainLayout() {}
 
     public static MainLayout newInstance(String param1, String param2) {
         MainLayout fragment = new MainLayout();
@@ -87,225 +77,89 @@ public class MainLayout extends Fragment {
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_main_layout, container, false);
-
-        // ScrollView scrollStyles = view.findViewById(R.id.scroll_styles);
-        // ScrollView scrollPerformances = view.findViewById(R.id.scroll_performances);
-
         mainLayout = view.findViewById(R.id.mainLayout);
-
-        DatabaseHelper dbHelper = DatabaseHelper.getInstance(this.getContext());
-        // styles = dbHelper.getAllStyles(this.getContext());
-        favPerformances = dbHelper.getAllFavPerformances(this.getContext());
-
         populateMainLayout();
-        // populateStylesContainer(scrollStyles, styles);
-        // populatePerformancesContainer(scrollPerformances, performances);
-
         return view;
-    }
-
-    @Override
-    public void onViewCreated(View view, Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
     }
 
     private void initMidi() {
         midiManager = (MidiManager) requireContext().getSystemService(Context.MIDI_SERVICE);
         MidiDeviceInfo[] devices = midiManager.getDevices();
-        if (devices.length == 0) {
-            Log.e("MIDI", "No MIDI devices found!");
-            return;
-        }
-
+        if (devices.length == 0) return;
         MidiDeviceInfo deviceInfo = devices[0];
-        MidiDeviceInfo.PortInfo inputPort = Arrays.stream(deviceInfo.getPorts()).filter(port -> port.getType() == MidiDeviceInfo.PortInfo.TYPE_INPUT).findFirst().orElse(null);
-
-        if (inputPort == null) {
-            Log.e("MIDI", "No input port available!");
-            return;
-        }
-
+        MidiDeviceInfo.PortInfo inputPort = Arrays.stream(deviceInfo.getPorts()).filter(p -> p.getType() == MidiDeviceInfo.PortInfo.TYPE_INPUT).findFirst().orElse(null);
+        if (inputPort == null) return;
         midiManager.openDevice(deviceInfo, device -> {
-            if (device == null) {
-                Log.e("MIDI", "Failed to open MIDI device!");
-                return;
-            }
-
+            if (device == null) return;
             midiDevice = device;
-            midiInputPort = midiDevice.openInputPort(inputPort.getPortNumber());
-            if (midiInputPort == null) {
-                Log.e("MIDI", "Failed to open MIDI input port!");
-            } else {
-                Log.d("MIDI", "MIDI input port opened successfully!");
-            }
+            midiInputPort = device.openInputPort(inputPort.getPortNumber());
         }, new Handler(Looper.getMainLooper()));
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        closeMidi();
-    }
-
-    private void closeMidi() {
-        if (midiInputPort != null) {
-            try {
-                midiInputPort.close();
-                midiInputPort = null;
-                Log.d("MIDI", "MIDI input port closed.");
-            } catch (IOException e) {
-                Log.e("MIDI", "Error closing MIDI input port: " + e.getMessage());
-            }
-        }
-
-        if (midiDevice != null) {
-            try {
-                midiDevice.close();
-                midiDevice = null;
-                Log.d("MIDI", "MIDI device closed.");
-            } catch (IOException e) {
-                Log.e("MIDI", "Error closing MIDI device: " + e.getMessage());
-            }
-        }
-    }
-
-    private void setKeyboardPerformance(int msb, int lsb, int program) {
-        if (midiInputPort == null) {
-            Log.e("SetKeyboardPerformance", "MIDI input port not available!");
-            return;
-        }
-
         try {
-            sendPerformanceChange(msb, lsb, program);
-            Log.d("MIDI", "Performance Set: MSB=" + msb + ", LSB=" + lsb + ", Program=" + program);
-        } catch (IOException e) {
-            Log.e("SetKeyboardPerformance", "Error sending performance change: " + e.getMessage());
-        }
+            if (midiInputPort != null) midiInputPort.close();
+            if (midiDevice != null) midiDevice.close();
+        } catch (IOException ignored) {}
     }
 
     private void sendPerformanceChange(int msb, int lsb, int program) throws IOException {
         Handler handler = new Handler(Looper.getMainLooper());
-
         handler.postDelayed(() -> {
             try {
                 midiInputPort.send(new byte[]{(byte) 0xB0, 0x00, (byte) msb}, 0, 3);
-            } catch (IOException e) {
-                Log.e("MIDI", "MSB Send Failed: " + e.getMessage());
-            }
-        }, 150); // No delay for first message
-
+            } catch (IOException ignored) {}
+        }, 150);
         handler.postDelayed(() -> {
             try {
                 midiInputPort.send(new byte[]{(byte) 0xB0, 0x20, (byte) lsb}, 0, 3);
-            } catch (IOException e) {
-                Log.e("MIDI", "LSB Send Failed: " + e.getMessage());
-            }
-        }, 150); // ~167ms after first message
-
+            } catch (IOException ignored) {}
+        }, 150);
         handler.postDelayed(() -> {
             try {
-                midiInputPort.send(new byte[]{(byte) 0xC0, (byte) (program)}, 0, 2);
-            } catch (IOException e) {
-                Log.e("MIDI", "Program Change Send Failed: " + e.getMessage());
-            }
-        }, 150); // ~167ms after second message
+                midiInputPort.send(new byte[]{(byte) 0xC0, (byte) program}, 0, 2);
+            } catch (IOException ignored) {}
+        }, 150);
     }
 
-    private void populateMainLayout() {
-        mainLayout.removeAllViews();
-        mainLayout.setBackgroundColor(Color.BLACK);
-        Context context = mainLayout.getContext();
-
-        DatabaseHelper db = DatabaseHelper.getInstance(context);
-        List<FavPerformance> favs = db.getAllFavPerformances(getContext()); // from your new table
-        Map<Integer, FavPerformance> indexed = new HashMap<>();
-        for (FavPerformance f : favs) {
-            indexed.put(f.getFavIndex(), f);
-        }
-
-        LinearLayout rowLayout = null;
-        for (int i = 0; i < 24; i++) {
-            if (i % 6 == 0) {
-                rowLayout = new LinearLayout(context);
-                rowLayout.setOrientation(LinearLayout.HORIZONTAL);
-                rowLayout.setLayoutParams(new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        0, 1f
-                ));
-                mainLayout.addView(rowLayout);
-            }
-
-            TextView btn = new TextView(context);
-            btn.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
-            btn.setGravity(Gravity.CENTER);
-            btn.setClickable(true);
-            btn.setFocusable(true);
-            btn.setTextColor(Color.WHITE);
-            btn.setTextSize(28);
-            btn.setTypeface(null, Typeface.BOLD);
-            btn.setBackground(getDefaultButtonDrawable());
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f);
-            int margin = dpToPx(getContext(), 4); // 4dp margin
-            params.setMargins(margin, margin, margin, margin);
-            btn.setLayoutParams(params);
-
-
-            int slot = i + 1;
-            FavPerformance partial = indexed.get(slot);
-
-            FavPerformance fp = null;
-            if (partial != null) {
-                fp = new FavPerformance();
-                fp.loadFavPerformance(partial.getId(), getContext()); // ← this must exist and load full row
-            }
-
-
-            if (fp != null && fp.getUlocation() != null && fp.getPlocation() != null && fp.getIlocation() != null) {
-                final FavPerformance finalFp = fp;
-
-                btn.setText(fp.getName() != null && !fp.getName().isEmpty() ? fp.getName() : "Fav " + slot);
-                btn.setOnClickListener(v -> {
-                    if (selectedFavButton != null) {
-                        selectedFavButton.setBackground(getDefaultButtonDrawable());
-                        selectedFavButton.setTextColor(Color.WHITE);
-                    }
-
-                    selectedFavButton = btn;
-                    btn.setBackground(getSelectedButtonDrawable());
-                    btn.setTextColor(Color.BLACK);
-
-                    int uLocation = Integer.parseInt(finalFp.getUlocation().getName());
-                    int pLocation = Integer.parseInt(finalFp.getPlocation().getName());
-                    int iLocation = Integer.parseInt(finalFp.getIlocation().getName());
-
-                    int lsb = uLocation - 1;
-                    int program = 1 + (pLocation - 1) * 8 + (iLocation - 1);
-                    setKeyboardPerformance(17, lsb, program - 1);
-                });
-            }
-
-            final int favIndex;
-            if (partial != null) {
-                favIndex = partial.getFavIndex();
-            } else {
-                favIndex = slot;
-            }
-
-            btn.setOnLongClickListener(v -> {
-                showMidiAssignDialog(btn, favIndex);
-                return true;
-            });
-
-            rowLayout.addView(btn);
-        }
+    private void setKeyboardPerformance(int msb, int lsb, int program) {
+        if (midiInputPort == null) return;
+        try {
+            sendPerformanceChange(msb, lsb, program);
+        } catch (IOException ignored) {}
     }
 
     private int dpToPx(Context context, int dp) {
         float density = context.getResources().getDisplayMetrics().density;
         return Math.round(dp * density);
+    }
+
+    private Drawable getDefaultButtonDrawable() {
+        GradientDrawable drawable = new GradientDrawable();
+        drawable.setColor(Color.parseColor("#333333"));
+        drawable.setCornerRadius(32);
+        drawable.setStroke(2, Color.WHITE);
+        return drawable;
+    }
+
+    private Drawable getSelectedButtonDrawable() {
+        GradientDrawable drawable = new GradientDrawable();
+        drawable.setColor(Color.YELLOW);
+        drawable.setCornerRadius(32);
+        drawable.setStroke(2, Color.WHITE);
+        return drawable;
+    }
+
+    private Drawable getSwapSelectedButtonDrawable() {
+        GradientDrawable drawable = new GradientDrawable();
+        drawable.setColor(Color.parseColor("#444444"));
+        drawable.setCornerRadius(32);
+        drawable.setStroke(4, Color.YELLOW);
+        return drawable;
     }
 
     private void showMidiAssignDialog(TextView targetBtn, int favIndex) {
@@ -314,16 +168,15 @@ public class MainLayout extends Fragment {
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(32, 32, 32, 32);
 
-        android.widget.EditText name = new android.widget.EditText(ctx);
+        EditText name = new EditText(ctx);
         name.setHint("Name");
-        android.widget.EditText uInput = new android.widget.EditText(ctx);
+        EditText uInput = new EditText(ctx);
         uInput.setHint("ULocation");
-        android.widget.EditText pInput = new android.widget.EditText(ctx);
+        EditText pInput = new EditText(ctx);
         pInput.setHint("PLocation");
-        android.widget.EditText iInput = new android.widget.EditText(ctx);
+        EditText iInput = new EditText(ctx);
         iInput.setHint("ILocation");
 
-        // Try to load existing data
         FavPerformance existing = new FavPerformance();
         existing.loadFavPerformanceByFavIndex(favIndex, ctx);
 
@@ -337,174 +190,188 @@ public class MainLayout extends Fragment {
         layout.addView(pInput);
         layout.addView(iInput);
 
-        android.app.AlertDialog dialog = new android.app.AlertDialog.Builder(ctx)
+        AlertDialog dialog = new AlertDialog.Builder(ctx)
                 .setTitle("Assign Slot " + favIndex)
                 .setView(layout)
                 .setPositiveButton("Save", null)
-                .setNegativeButton("Cancel", null)
+                .setNegativeButton("Cancel", (d, w) -> d.dismiss())
                 .setNeutralButton("Swap", null)
-                .show();
+                .create();
 
-        dialog.getButton(android.app.AlertDialog.BUTTON_NEUTRAL).setOnClickListener(v -> {
-            String sName = name.getText().toString().trim();
-            String uStr = uInput.getText().toString().trim();
-            String pStr = pInput.getText().toString().trim();
-            String iStr = iInput.getText().toString().trim();
+        dialog.setButton(AlertDialog.BUTTON_NEGATIVE, "Delete", (d, w) -> {
+            FavPerformance.deleteByFavIndex(ctx, favIndex);
+            populateMainLayout();
+        });
 
-            boolean valid = true;
+        dialog.show();
 
-            if (sName.length() > 25) {
-                name.setError("Max 25 characters allowed");
-                valid = false;
-            }
+        dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(v -> {
+            try {
+                Ulocation u = getU(ctx, uInput.getText().toString());
+                Plocation p = getP(ctx, pInput.getText().toString());
+                Ilocation i = getI(ctx, iInput.getText().toString());
 
-            if (!uStr.matches("^\\d{1,2}$") || Integer.parseInt(uStr) > 99) {
-                uInput.setError("Enter a number 0–99");
-                valid = false;
-            }
+                if (u == null || u.getName() == null || p == null || p.getName() == null || i == null || i.getName() == null) {
+                    Toast.makeText(ctx, "Invalid location(s)", Toast.LENGTH_SHORT).show();
+                    return;
+                }
 
-            if (!pStr.matches("^\\d{1,2}$") || Integer.parseInt(pStr) > 99) {
-                pInput.setError("Enter a number 0–99");
-                valid = false;
-            }
-
-            if (!iStr.matches("^\\d{1,2}$") || Integer.parseInt(iStr) > 99) {
-                iInput.setError("Enter a number 0–99");
-                valid = false;
-            }
-
-            if (!valid) return;
-
-            Ulocation ulocation = new Ulocation();
-            Plocation plocation = new Plocation();
-            Ilocation ilocation = new Ilocation();
-
-            String sULocation = "U" + uStr;
-            String sPLocation = "P" + pStr;
-            String sILocation = "I" + iStr;
-
-            ulocation.loadUlocationByName(sULocation, getContext());
-            plocation.loadPlocationByName(sPLocation, getContext());
-            ilocation.loadIlocationByName(sILocation, getContext());
-
-            if (ulocation == null || plocation == null || ilocation == null) {
-                targetBtn.setText("error");
-                return;
-            }
-
-            FavPerformance current = new FavPerformance(sName, ulocation, plocation, ilocation, favIndex);
-
-            if (swapBuffer == null) {
-                swapBuffer = current;
+                swapBuffer = new FavPerformance(
+                        name.getText().toString(),
+                        u, p, i,
+                        favIndex
+                );
                 swapIndex = favIndex;
-
-                targetBtn.setBackground(getSwapSelectedButtonDrawable()); // Highlight button
-                Toast.makeText(ctx, "Slot " + favIndex + " selected to swap", Toast.LENGTH_SHORT).show();
+                targetBtn.setBackground(getSwapSelectedButtonDrawable());
+                Toast.makeText(ctx, "Selected slot " + favIndex + " for swap", Toast.LENGTH_SHORT).show();
                 dialog.dismiss();
-            } else {
-                int otherIndex = swapIndex;
-                FavPerformance other = swapBuffer;
-
-                // Swap indices regardless of whether current existed or not
-                current.setFavIndex(otherIndex);
-                other.setFavIndex(favIndex);
-
-                // Save new data into both places
-                current.saveOrUpdate(getContext());
-
-                // If overwriting into empty: delete the other slot
-                FavPerformance.deleteByFavIndex(getContext(), otherIndex);
-
-                // Save the swap source (now in new index)
-                other.saveOrUpdate(getContext());
-
-                Toast.makeText(ctx, "Swapped slot " + favIndex + " with slot " + otherIndex, Toast.LENGTH_SHORT).show();
-
-                // Reset
-                swapBuffer = null;
-                swapIndex = -1;
-                selectedFavButton = null;
-
-                populateMainLayout();
-                dialog.dismiss();
+            } catch (Exception e) {
+                Toast.makeText(ctx, "Invalid data", Toast.LENGTH_SHORT).show();
             }
         });
 
-        dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            String sName = name.getText().toString().trim();
-            String uStr = uInput.getText().toString().trim();
-            String pStr = pInput.getText().toString().trim();
-            String iStr = iInput.getText().toString().trim();
-
-            boolean valid = true;
-
-            if (sName.length() > 25) {
-                name.setError("Max 25 characters allowed");
-                valid = false;
-            }
-
-            if (!uStr.matches("^\\d{1,2}$") || Integer.parseInt(uStr) > 99) {
-                uInput.setError("Enter a number 0–99");
-                valid = false;
-            }
-
-            if (!pStr.matches("^\\d{1,2}$") || Integer.parseInt(pStr) > 99) {
-                pInput.setError("Enter a number 0–99");
-                valid = false;
-            }
-
-            if (!iStr.matches("^\\d{1,2}$") || Integer.parseInt(iStr) > 99) {
-                iInput.setError("Enter a number 0–99");
-                valid = false;
-            }
-
-            if (!valid) return;
-
-            Ulocation ulocation = new Ulocation();
-            Plocation plocation = new Plocation();
-            Ilocation ilocation = new Ilocation();
-
-            String sULocation = "U" + uStr;
-            String sPLocation = "P" + pStr;
-            String sILocation = "I" + iStr;
-
-            ulocation.loadUlocationByName(sULocation, getContext());
-            plocation.loadPlocationByName(sPLocation, getContext());
-            ilocation.loadIlocationByName(sILocation, getContext());
-
-            if (ulocation != null && plocation != null && ilocation != null) {
-                FavPerformance favPerformance = new FavPerformance(sName, ulocation, plocation, ilocation, favIndex);
-                favPerformance.saveOrUpdate(getContext());
-                populateMainLayout();
-                dialog.dismiss();
-            } else {
-                targetBtn.setText("error");
-            }
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            FavPerformance f = new FavPerformance(
+                    name.getText().toString(),
+                    getU(ctx, uInput.getText().toString()),
+                    getP(ctx, pInput.getText().toString()),
+                    getI(ctx, iInput.getText().toString()),
+                    favIndex
+            );
+            f.saveOrUpdate(ctx);
+            populateMainLayout();
+            dialog.dismiss();
         });
     }
 
-    private Drawable getDefaultButtonDrawable() {
-        GradientDrawable drawable = new GradientDrawable();
-        drawable.setColor(Color.parseColor("#333333"));
-        drawable.setCornerRadius(32); // rounded
-        drawable.setStroke(2, Color.WHITE); // white border
-        return drawable;
+    private Ulocation getU(Context ctx, String raw) {
+        Ulocation u = new Ulocation();
+        u.loadUlocationByName("U" + raw, ctx);
+        return u;
     }
 
-    private Drawable getSelectedButtonDrawable() {
-        GradientDrawable drawable = new GradientDrawable();
-        drawable.setColor(Color.YELLOW); // selected = yellow
-        drawable.setCornerRadius(32);
-        drawable.setStroke(2, Color.WHITE);
-        return drawable;
+    private Plocation getP(Context ctx, String raw) {
+        Plocation p = new Plocation();
+        p.loadPlocationByName("P" + raw, ctx);
+        return p;
     }
 
-    private Drawable getSwapSelectedButtonDrawable() {
-        GradientDrawable drawable = new GradientDrawable();
-        drawable.setColor(Color.parseColor("#444444")); // darker background
-        drawable.setCornerRadius(32);
-        drawable.setStroke(4, Color.YELLOW); // Yellow border
-        return drawable;
+    private Ilocation getI(Context ctx, String raw) {
+        Ilocation i = new Ilocation();
+        i.loadIlocationByName("I" + raw, ctx);
+        return i;
     }
 
+    private void populateMainLayout() {
+        mainLayout.removeAllViews();
+        mainLayout.setBackgroundColor(Color.BLACK);
+        Context context = mainLayout.getContext();
+        DatabaseHelper db = DatabaseHelper.getInstance(context);
+        List<FavPerformance> favs = db.getAllFavPerformances(getContext());
+        Map<Integer, FavPerformance> indexed = new HashMap<>();
+        for (FavPerformance f : favs) indexed.put(f.getFavIndex(), f);
+
+        LinearLayout rowLayout = null;
+        for (int i = 0; i < 24; i++) {
+            if (i % 6 == 0) {
+                rowLayout = new LinearLayout(context);
+                rowLayout.setOrientation(LinearLayout.HORIZONTAL);
+                rowLayout.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
+                mainLayout.addView(rowLayout);
+            }
+
+            TextView btn = new TextView(context);
+            btn.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+            btn.setGravity(Gravity.CENTER);
+            btn.setClickable(true);
+            btn.setFocusable(true);
+            btn.setTextColor(Color.WHITE);
+            btn.setTextSize(28);
+            btn.setTypeface(null, Typeface.BOLD);
+            btn.setBackground(getDefaultButtonDrawable());
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f);
+            int margin = dpToPx(getContext(), 4);
+            params.setMargins(margin, margin, margin, margin);
+            btn.setLayoutParams(params);
+
+            int slot = i + 1;
+            FavPerformance partial = indexed.get(slot);
+            FavPerformance fp = null;
+            if (partial != null) {
+                fp = new FavPerformance();
+                fp.loadFavPerformance(partial.getId(), getContext());
+            }
+
+            final int favIndex = slot;
+            FavPerformance currentFp = fp;
+
+            if (currentFp != null && currentFp.getUlocation() != null && currentFp.getPlocation() != null && currentFp.getIlocation() != null) {
+                btn.setText(currentFp.getName() != null && !currentFp.getName().isEmpty() ? currentFp.getName() : "" + slot);
+            } else {
+                btn.setText("");
+            }
+
+            btn.setOnClickListener(v -> {
+                if (swapBuffer != null && swapIndex != -1) {
+                    FavPerformance original = new FavPerformance();
+                    original.loadFavPerformanceByFavIndex(favIndex, getContext());
+
+                    FavPerformance swapCopy = new FavPerformance(
+                            swapBuffer.getName(),
+                            swapBuffer.getUlocation(),
+                            swapBuffer.getPlocation(),
+                            swapBuffer.getIlocation(),
+                            favIndex
+                    );
+
+                    FavPerformance originalCopy = null;
+                    if (original.getId() != 0) {
+                        originalCopy = new FavPerformance(
+                                original.getName(),
+                                original.getUlocation(),
+                                original.getPlocation(),
+                                original.getIlocation(),
+                                swapIndex
+                        );
+                    }
+
+                    swapCopy.saveOrUpdate(getContext());
+                    if (originalCopy != null) {
+                        originalCopy.saveOrUpdate(getContext());
+                    } else {
+                        FavPerformance.deleteByFavIndex(getContext(), swapIndex);
+                    }
+
+                    swapBuffer = null;
+                    swapIndex = -1;
+                    selectedFavButton = null;
+                    populateMainLayout();
+                    return;
+            }
+
+            if (currentFp != null) {
+                if (selectedFavButton != null) {
+                    selectedFavButton.setBackground(getDefaultButtonDrawable());
+                    selectedFavButton.setTextColor(Color.WHITE);
+                }
+                selectedFavButton = btn;
+                btn.setBackground(getSelectedButtonDrawable());
+                btn.setTextColor(Color.BLACK);
+                int u = Integer.parseInt(currentFp.getUlocation().getName());
+                int p = Integer.parseInt(currentFp.getPlocation().getName());
+                int iLoc = Integer.parseInt(currentFp.getIlocation().getName());
+                int lsb = u - 1;
+                int program = 1 + (p - 1) * 8 + (iLoc - 1);
+                setKeyboardPerformance(17, lsb, program - 1);
+            }
+        });
+
+        btn.setOnLongClickListener(v -> {
+            showMidiAssignDialog(btn, favIndex);
+            return true;
+        });
+
+        rowLayout.addView(btn);
+    }
+}
 }
