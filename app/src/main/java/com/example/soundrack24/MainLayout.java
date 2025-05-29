@@ -234,7 +234,8 @@ public class MainLayout extends Fragment {
         });
 
         btnHelp.setOnClickListener(v -> {
-            Toast.makeText(ctx, "Enter valid U-P-I codes. U1-30, P1-20, I1-20", Toast.LENGTH_LONG).show();
+            dialog.dismiss(); // close current assign dialog
+            showHelpDialog(ctx);
         });
 
         btnRemove.setOnClickListener(v -> {
@@ -276,6 +277,27 @@ public class MainLayout extends Fragment {
         Ilocation i = new Ilocation();
         i.loadIlocationByName("I" + raw, ctx);
         return i;
+    }
+
+    private void showHelpDialog(Context ctx) {
+        View layout = LayoutInflater.from(ctx).inflate(R.layout.dialog_help, null);
+
+        MaterialButton btnClose = layout.findViewById(R.id.btnCloseHelp);
+
+        AlertDialog helpDialog = new AlertDialog.Builder(ctx)
+                .setView(layout)
+                .create();
+
+        btnClose.setOnClickListener(v -> helpDialog.dismiss());
+
+        helpDialog.show();
+        Window window = helpDialog.getWindow();
+        if (window != null) {
+            WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams();
+            layoutParams.copyFrom(window.getAttributes());
+            layoutParams.width = (int) (ctx.getResources().getDisplayMetrics().widthPixels * 0.7);
+            window.setAttributes(layoutParams);
+        }
     }
 
     private void setKeyboardPerformance(int msb, int lsb, int program) {
