@@ -1,6 +1,5 @@
 package Model;
 
-import static Model.DatabaseHelper.COLUMN_FAV_PERFORMANCE_FAV_INDEX;
 import static Model.DatabaseHelper.COLUMN_FAV_PERFORMANCE_ID;
 import static Model.DatabaseHelper.COLUMN_FAV_PERFORMANCE_ILOCATION;
 import static Model.DatabaseHelper.COLUMN_FAV_PERFORMANCE_NAME;
@@ -14,6 +13,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 public class FavPerformance implements Serializable {
 
@@ -22,26 +22,23 @@ public class FavPerformance implements Serializable {
     private Ulocation ulocation;
     private Plocation plocation;
     private Ilocation ilocation;
-    private int favIndex;
     private DatabaseHelper dbHelper;
 
     public FavPerformance() {}
 
-    public FavPerformance(long id, String name, Ulocation ulocation, Plocation plocation, Ilocation ilocation, int favIndex) {
+    public FavPerformance(long id, String name, Ulocation ulocation, Plocation plocation, Ilocation ilocation) {
         this.id = id;
         this.name = name;
         this.ulocation = ulocation;
         this.plocation = plocation;
         this.ilocation = ilocation;
-        this.favIndex = favIndex;
     }
 
-    public FavPerformance(String name, Ulocation ulocation, Plocation plocation, Ilocation ilocation, int favIndex) {
+    public FavPerformance(String name, Ulocation ulocation, Plocation plocation, Ilocation ilocation) {
         this.name = name;
         this.ulocation = ulocation;
         this.plocation = plocation;
         this.ilocation = ilocation;
-        this.favIndex = favIndex;
     }
 
     public long getId() {
@@ -53,7 +50,7 @@ public class FavPerformance implements Serializable {
     }
 
     public String getName() {
-        return name;
+        return (name != null && name.length() > 1) ? name : "";
     }
 
     public void setName(String name) {
@@ -84,14 +81,6 @@ public class FavPerformance implements Serializable {
         this.ilocation = ilocation;
     }
 
-    public int getFavIndex() {
-        return favIndex;
-    }
-
-    public void setFavIndex(int favIndex) {
-        this.favIndex = favIndex;
-    }
-
     public void loadFavPerformance(long favPerformanceId, Context context) {
         dbHelper = DatabaseHelper.getInstance(context);
         SQLiteDatabase db = dbHelper.getReadableDatabase();
@@ -102,8 +91,7 @@ public class FavPerformance implements Serializable {
                 COLUMN_FAV_PERFORMANCE_NAME,
                 COLUMN_FAV_PERFORMANCE_PLOCATION,
                 COLUMN_FAV_PERFORMANCE_ULOCATION,
-                COLUMN_FAV_PERFORMANCE_ILOCATION,
-                COLUMN_FAV_PERFORMANCE_FAV_INDEX
+                COLUMN_FAV_PERFORMANCE_ILOCATION
         };
 
         // Define the WHERE clause for the style
@@ -127,7 +115,6 @@ public class FavPerformance implements Serializable {
             long uLocationId = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_FAV_PERFORMANCE_ULOCATION));
             long pLocationId = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_FAV_PERFORMANCE_PLOCATION));
             long iLocationId = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_FAV_PERFORMANCE_ILOCATION));
-            int favIndex = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_FAV_PERFORMANCE_FAV_INDEX));
 
             // Load related objects by ID
             Ulocation ulocation = new Ulocation();
@@ -142,104 +129,51 @@ public class FavPerformance implements Serializable {
             this.setUlocation(ulocation);
             this.setPlocation(plocation);
             this.setIlocation(ilocation);
-            this.setFavIndex(favIndex);
         }
 
         // Close the cursor and database
         cursor.close();
     }
 
-    public void loadFavPerformanceByFavIndex(int favIndex, Context context) {
-        dbHelper = DatabaseHelper.getInstance(context);
-        SQLiteDatabase db = dbHelper.getReadableDatabase();
-
-        String[] columns = {
-                COLUMN_FAV_PERFORMANCE_ID,
-                COLUMN_FAV_PERFORMANCE_NAME,
-                COLUMN_FAV_PERFORMANCE_ULOCATION,
-                COLUMN_FAV_PERFORMANCE_PLOCATION,
-                COLUMN_FAV_PERFORMANCE_ILOCATION,
-                COLUMN_FAV_PERFORMANCE_FAV_INDEX
-        };
-
-        String selection = COLUMN_FAV_PERFORMANCE_FAV_INDEX + " = ?";
-        String[] selectionArgs = { String.valueOf(favIndex) };
-
-        Cursor cursor = db.query(
-                TABLE_FAV_PERFORMANCES,
-                columns,
-                selection,
-                selectionArgs,
-                null,
-                null,
-                null
-        );
-
-        if (cursor.moveToFirst()) {
-            long id = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_FAV_PERFORMANCE_ID));
-            String name = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_FAV_PERFORMANCE_NAME));
-            long uLocationId = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_FAV_PERFORMANCE_ULOCATION));
-            long pLocationId = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_FAV_PERFORMANCE_PLOCATION));
-            long iLocationId = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_FAV_PERFORMANCE_ILOCATION));
-            int index = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_FAV_PERFORMANCE_FAV_INDEX));
-
-            Ulocation ulocation = new Ulocation();
-            Plocation plocation = new Plocation();
-            Ilocation ilocation = new Ilocation();
-
-            ulocation.loadUlocation(uLocationId, context);
-            plocation.loadPlocation(pLocationId, context);
-            ilocation.loadIlocation(iLocationId, context);
-
-            this.setId(id);
-            this.setName(name);
-            this.setUlocation(ulocation);
-            this.setPlocation(plocation);
-            this.setIlocation(ilocation);
-            this.setFavIndex(index);
-        }
-
-        cursor.close();
-    }
-
-    public void saveOrUpdate(Context context) {
+    public void update(Context context) {
         dbHelper = DatabaseHelper.getInstance(context);
         SQLiteDatabase db = dbHelper.getWritableDatabase();
+
         ContentValues contentValues = new ContentValues();
+        contentValues.put(COLUMN_FAV_PERFORMANCE_NAME, this.name != null ? this.name : "");
 
-        contentValues.put(COLUMN_FAV_PERFORMANCE_NAME, this.getName());
-        contentValues.put(COLUMN_FAV_PERFORMANCE_ULOCATION, this.getUlocation().getId());
-        contentValues.put(COLUMN_FAV_PERFORMANCE_PLOCATION, this.getPlocation().getId());
-        contentValues.put(COLUMN_FAV_PERFORMANCE_ILOCATION, this.getIlocation().getId());
-        contentValues.put(COLUMN_FAV_PERFORMANCE_FAV_INDEX, this.getFavIndex());
+        contentValues.put(COLUMN_FAV_PERFORMANCE_ULOCATION,
+                this.ulocation != null ? this.ulocation.getId() : null);
+        contentValues.put(COLUMN_FAV_PERFORMANCE_PLOCATION,
+                this.plocation != null ? this.plocation.getId() : null);
+        contentValues.put(COLUMN_FAV_PERFORMANCE_ILOCATION,
+                this.ilocation != null ? this.ilocation.getId() : null);
 
-        long existingId = this.id;
-
-        if (existingId == 0) {
-            // Try to load ID from favIndex if not present
-            Cursor findCursor = db.rawQuery("SELECT _id FROM " + TABLE_FAV_PERFORMANCES + " WHERE " + COLUMN_FAV_PERFORMANCE_FAV_INDEX + "=?", new String[]{String.valueOf(this.favIndex)});
-            if (findCursor.moveToFirst()) {
-                existingId = findCursor.getLong(0);
-                this.id = existingId;
-            }
-            findCursor.close();
-        }
-
-        if (existingId > 0) {
-            db.update(TABLE_FAV_PERFORMANCES, contentValues, "_id=?", new String[]{String.valueOf(existingId)});
-        } else {
-            long newId = db.insert(TABLE_FAV_PERFORMANCES, null, contentValues);
-            this.id = newId;
-        }
+        db.update(TABLE_FAV_PERFORMANCES, contentValues, COLUMN_FAV_PERFORMANCE_ID + " = ?", new String[]{String.valueOf(this.id)});
     }
 
-    public static void deleteByFavIndex(Context context, int favIndex) {
-        DatabaseHelper dbHelper = DatabaseHelper.getInstance(context);
+    public void update(Context context, int id) {
+        dbHelper = DatabaseHelper.getInstance(context);
         SQLiteDatabase db = dbHelper.getWritableDatabase();
 
-        db.delete(TABLE_FAV_PERFORMANCES, COLUMN_FAV_PERFORMANCE_FAV_INDEX + " = ?", new String[]{String.valueOf(favIndex)});
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(COLUMN_FAV_PERFORMANCE_NAME, "");
+        contentValues.put(COLUMN_FAV_PERFORMANCE_ULOCATION, "");
+        contentValues.put(COLUMN_FAV_PERFORMANCE_PLOCATION, "");
+        contentValues.put(COLUMN_FAV_PERFORMANCE_ILOCATION, "");
 
-        db.close();
+        db.update(TABLE_FAV_PERFORMANCES, contentValues, COLUMN_FAV_PERFORMANCE_ID + " = ?", new String[]{String.valueOf(this.id)});
+    }
+
+    public void remove(Context context, int id) {
+        this.update(context, id);
+    }
+
+    public boolean isFpEmpty() {
+        return (name == null || name.isEmpty()) &&
+                (ulocation == null || ulocation.getName() == null || ulocation.getName().isEmpty()) &&
+                (plocation == null || plocation.getName() == null || plocation.getName().isEmpty()) &&
+                (ilocation == null || ilocation.getName() == null || ilocation.getName().isEmpty());
     }
 
 }
