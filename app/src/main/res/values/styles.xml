@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="DialogButtonStyle" parent="Widget.Material3.Button">
+        <item name="cornerRadius">5dp</item>
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="android:padding">8dp</item>
+    </style>
+</resources>

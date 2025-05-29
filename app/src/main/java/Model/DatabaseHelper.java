@@ -6,10 +6,6 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -18,7 +14,7 @@ import java.util.concurrent.Executors;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "mydatabase.db";
-    private static final int DATABASE_VERSION = 177;
+    private static final int DATABASE_VERSION = 188;
 
     // Singleton
     private static DatabaseHelper instance;
@@ -46,7 +42,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public static final String COLUMN_FAV_PERFORMANCE_ULOCATION = "ulocation_id";
     public static final String COLUMN_FAV_PERFORMANCE_PLOCATION = "plocation_id";
     public static final String COLUMN_FAV_PERFORMANCE_ILOCATION = "ilocation_id";
-    public static final String COLUMN_FAV_PERFORMANCE_FAV_INDEX = "fav_index";
 
     private DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -82,6 +77,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         populateUlocationTable();
         populatePlocationTable();
         populateIlocationTable();
+        populateFavPerformancesTable();
     }
 
     private String getCreateULocationTable() {
@@ -105,11 +101,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private String getCreateFavPerformancesTable() {
         return "CREATE TABLE " + TABLE_FAV_PERFORMANCES + " (" +
                 COLUMN_FAV_PERFORMANCE_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                COLUMN_FAV_PERFORMANCE_NAME + " TEXT NOT NULL, " +
+                COLUMN_FAV_PERFORMANCE_NAME + " TEXT, " +
                 COLUMN_FAV_PERFORMANCE_ULOCATION + " INTEGER, " +
                 COLUMN_FAV_PERFORMANCE_PLOCATION + " INTEGER, " +
-                COLUMN_FAV_PERFORMANCE_ILOCATION + " INTEGER, " +
-                COLUMN_FAV_PERFORMANCE_FAV_INDEX + " INTEGER " + ");";
+                COLUMN_FAV_PERFORMANCE_ILOCATION + " INTEGER " + ");";
     }
 
     public void populateUlocationTable() {
@@ -148,6 +143,16 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
     }
 
+    public void populateFavPerformancesTable() {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        for (int i = 1; i <= 24; i++) {
+            ContentValues values = new ContentValues();
+            values.put("_id", i);
+            db.insert(TABLE_FAV_PERFORMANCES, null, values);
+        }
+    }
+
     public List<FavPerformance> getAllFavPerformances(Context context) {
         List<FavPerformance> favPerformances = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
@@ -157,8 +162,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 COLUMN_FAV_PERFORMANCE_NAME,
                 COLUMN_FAV_PERFORMANCE_ULOCATION,
                 COLUMN_FAV_PERFORMANCE_PLOCATION,
-                COLUMN_FAV_PERFORMANCE_ILOCATION,
-                COLUMN_FAV_PERFORMANCE_FAV_INDEX
+                COLUMN_FAV_PERFORMANCE_ILOCATION
         };
 
         Cursor cursor = db.query(
@@ -178,7 +182,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 long uLocationId = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_FAV_PERFORMANCE_ULOCATION));
                 long pLocationId = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_FAV_PERFORMANCE_PLOCATION));
                 long iLocationId = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_FAV_PERFORMANCE_ILOCATION));
-                int favIndex = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_FAV_PERFORMANCE_FAV_INDEX));
 
                 Ulocation ulocation = new Ulocation();
                 ulocation.loadUlocation(uLocationId, context);
@@ -187,7 +190,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 Ilocation ilocation = new Ilocation();
                 ilocation.loadIlocation(iLocationId, context);
 
-                FavPerformance fav = new FavPerformance(id, name, ulocation, plocation, ilocation, favIndex);
+                FavPerformance fav = new FavPerformance(id, name, ulocation, plocation, ilocation);
                 favPerformances.add(fav);
             } while (cursor.moveToNext());
         }

@@ -32,7 +32,7 @@ public class Ilocation implements Serializable {
     }
 
     public String getName() {
-        return name.substring(1);
+        return (name != null && name.length() > 1) ? name.substring(1) : "";
     }
 
     public void setName(String name) {
