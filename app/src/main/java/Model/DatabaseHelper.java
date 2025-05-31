@@ -14,34 +14,42 @@ import java.util.concurrent.Executors;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "mydatabase.db";
-    private static final int DATABASE_VERSION = 188;
+    private static final int DATABASE_VERSION = 189;
 
     // Singleton
     private static DatabaseHelper instance;
     private static final ExecutorService databaseExecutor = Executors.newFixedThreadPool(4);
 
-    // Table 10: ULOCATION
+    // Table 1: ULOCATION
     public static final String TABLE_ULOCATION = "ulocation";
     public static final String COLUMN_ULOCATION_ID = "_id";
     public static final String COLUMN_ULOCATION_NAME = "name";
 
-    // Table 11: PLOCATION
+    // Table 2: PLOCATION
     public static final String TABLE_PLOCATION = "plocation";
     public static final String COLUMN_PLOCATION_ID = "_id";
     public static final String COLUMN_PLOCATION_NAME = "name";
 
-    // TABLE 12: ILOCATION
+    // TABLE 33: ILOCATION
     public static final String TABLE_ILOCATION = "ilocation";
     public static final String COLUMN_ILOCATION_ID = "_id";
     public static final String COLUMN_ILOCATION_NAME = "name";
 
-    // Table 20: Fav-Performances
+    // Table 4: Fav-Performances
     public static final String TABLE_FAV_PERFORMANCES = "fav_performances";
     public static final String COLUMN_FAV_PERFORMANCE_ID = "_id";
     public static final String COLUMN_FAV_PERFORMANCE_NAME = "name";
     public static final String COLUMN_FAV_PERFORMANCE_ULOCATION = "ulocation_id";
     public static final String COLUMN_FAV_PERFORMANCE_PLOCATION = "plocation_id";
     public static final String COLUMN_FAV_PERFORMANCE_ILOCATION = "ilocation_id";
+
+    // Table 21: Fav-Styles
+    public static final String TABLE_FAV_STYLES = "fav_styles";
+    public static final String COLUMN_FAV_STYLE_ID = "_id";
+    public static final String COLUMN_FAV_STYLE_NAME = "name";
+    public static final String COLUMN_FAV_STYLE_ULOCATION = "ulocation_id";
+    public static final String COLUMN_FAV_STYLE_PLOCATION = "plocation_id";
+    public static final String COLUMN_FAV_STYLE_ILOCATION = "ilocation_id";
 
     private DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -61,6 +69,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.execSQL(getCreatePLocationTable());
         db.execSQL(getCreateILocationTable());
         db.execSQL(getCreateFavPerformancesTable());
+        db.execSQL(getCreateFavStylesTable());
     }
 
     @Override
@@ -70,6 +79,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_PLOCATION);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_ILOCATION);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_FAV_PERFORMANCES);
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_FAV_STYLES);
         onCreate(db);
     }
 
@@ -78,6 +88,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         populatePlocationTable();
         populateIlocationTable();
         populateFavPerformancesTable();
+        populateFavStylesTable();
     }
 
     private String getCreateULocationTable() {
@@ -105,6 +116,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 COLUMN_FAV_PERFORMANCE_ULOCATION + " INTEGER, " +
                 COLUMN_FAV_PERFORMANCE_PLOCATION + " INTEGER, " +
                 COLUMN_FAV_PERFORMANCE_ILOCATION + " INTEGER " + ");";
+    }
+
+    private String getCreateFavStylesTable() {
+        return "CREATE TABLE " + TABLE_FAV_STYLES + " (" +
+                COLUMN_FAV_STYLE_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                COLUMN_FAV_STYLE_NAME + " TEXT, " +
+                COLUMN_FAV_STYLE_ULOCATION + " INTEGER, " +
+                COLUMN_FAV_STYLE_PLOCATION + " INTEGER, " +
+                COLUMN_FAV_STYLE_ILOCATION + " INTEGER " + ");";
     }
 
     public void populateUlocationTable() {
@@ -150,6 +170,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             ContentValues values = new ContentValues();
             values.put("_id", i);
             db.insert(TABLE_FAV_PERFORMANCES, null, values);
+        }
+    }
+
+    public void populateFavStylesTable() {
+        SQLiteDatabase db = this.getWritableDatabase();
+        for (int i = 1; i <= 24; i++) {
+            ContentValues values = new ContentValues();
+            values.put("_id", i);
+            db.insert(TABLE_FAV_STYLES, null, values);
         }
     }
 
@@ -199,5 +228,38 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return favPerformances;
     }
 
+    public List<FavStyle> getAllFavStyles(Context context) {
+        List<FavStyle> list = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        String[] columns = {
+                COLUMN_FAV_STYLE_ID,
+                COLUMN_FAV_STYLE_NAME,
+                COLUMN_FAV_STYLE_ULOCATION,
+                COLUMN_FAV_STYLE_PLOCATION,
+                COLUMN_FAV_STYLE_ILOCATION
+        };
+
+        Cursor cursor = db.query(TABLE_FAV_STYLES, columns, null, null, null, null, null);
+
+        if (cursor.moveToFirst()) {
+            do {
+                long id = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_FAV_STYLE_ID));
+                String name = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_FAV_STYLE_NAME));
+                long uId = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_FAV_STYLE_ULOCATION));
+                long pId = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_FAV_STYLE_PLOCATION));
+                long iId = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_FAV_STYLE_ILOCATION));
+
+                Ulocation u = new Ulocation(); u.loadUlocation(uId, context);
+                Plocation p = new Plocation(); p.loadPlocation(pId, context);
+                Ilocation i = new Ilocation(); i.loadIlocation(iId, context);
+
+                list.add(new FavStyle(id, name, u, p, i));
+            } while (cursor.moveToNext());
+        }
+
+        cursor.close();
+        return list;
+    }
 
 }
