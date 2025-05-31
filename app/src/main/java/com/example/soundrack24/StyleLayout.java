@@ -11,6 +11,7 @@ import android.media.midi.MidiManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -33,6 +34,7 @@ import Model.DatabaseHelper;
 import Model.FavPerformance;
 import Model.FavStyle;
 import Model.Ilocation;
+import Model.MidiController;
 import Model.Plocation;
 import Model.Ulocation;
 
@@ -51,34 +53,8 @@ public class StyleLayout extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_main_layout, container, false);
         mainLayout = view.findViewById(R.id.mainLayout);
-        initMidi();
         populateMainLayout();
         return view;
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        try {
-            if (midiInputPort != null) midiInputPort.close();
-            if (midiDevice != null) midiDevice.close();
-        } catch (IOException ignored) {}
-    }
-
-    private void initMidi() {
-        midiManager = (MidiManager) requireContext().getSystemService(Context.MIDI_SERVICE);
-        MidiDeviceInfo[] devices = midiManager.getDevices();
-        if (devices.length == 0) return;
-        MidiDeviceInfo deviceInfo = devices[0];
-        MidiDeviceInfo.PortInfo inputPort = Arrays.stream(deviceInfo.getPorts())
-                .filter(p -> p.getType() == MidiDeviceInfo.PortInfo.TYPE_INPUT)
-                .findFirst().orElse(null);
-        if (inputPort == null) return;
-        midiManager.openDevice(deviceInfo, device -> {
-            if (device == null) return;
-            midiDevice = device;
-            midiInputPort = device.openInputPort(inputPort.getPortNumber());
-        }, new Handler(Looper.getMainLooper()));
     }
 
     private void populateMainLayout() {
@@ -304,24 +280,28 @@ public class StyleLayout extends Fragment {
     }
 
     private void setKeyboardStyle(int msb, int lsb, int program) {
-        if (midiInputPort == null) return;
-        Handler handler = new Handler(Looper.getMainLooper());
-
-        handler.postDelayed(() -> {
-            try {
-                midiInputPort.send(new byte[]{(byte) 0xB0, 0x00, (byte) msb}, 0, 3);
-            } catch (IOException ignored) {}
-        }, 150);
-        handler.postDelayed(() -> {
-            try {
-                midiInputPort.send(new byte[]{(byte) 0xB0, 0x20, (byte) lsb}, 0, 3);
-            } catch (IOException ignored) {}
-        }, 150);
-        handler.postDelayed(() -> {
-            try {
-                midiInputPort.send(new byte[]{(byte) 0xC0, (byte) (program)}, 0, 2); // Program -1 here!
-            } catch (IOException ignored) {}
-        }, 150);
+        midiInputPort = MidiController.getInstance().getPort();
+        if (midiInputPort == null) {
+            return;
+        }
+        try {
+            Handler handler = new Handler(Looper.getMainLooper());
+            handler.postDelayed(() -> {
+                try {
+                    midiInputPort.send(new byte[]{(byte) 0xB0, 0x00, (byte) msb}, 0, 3);
+                } catch (IOException ignored) {}
+            }, 150);
+            handler.postDelayed(() -> {
+                try {
+                    midiInputPort.send(new byte[]{(byte) 0xB0, 0x20, (byte) lsb}, 0, 3);
+                } catch (IOException ignored) {}
+            }, 150);
+            handler.postDelayed(() -> {
+                try {
+                    midiInputPort.send(new byte[]{(byte) 0xC0, (byte) program}, 0, 2);
+                } catch (IOException ignored) {}
+            }, 150);
+        } catch (Exception ignored) {}
     }
 
 }

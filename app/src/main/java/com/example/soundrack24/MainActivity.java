@@ -9,6 +9,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import Model.DatabaseHelper;
+import Model.MidiController;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -20,6 +21,9 @@ public class MainActivity extends AppCompatActivity {
 
         DatabaseHelper databaseHelper = DatabaseHelper.getInstance(this);
         databaseHelper.populateBaseTables();
+
+        // Init midi
+        MidiController.getInstance().init(this);
 
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()

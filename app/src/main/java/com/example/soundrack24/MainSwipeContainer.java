@@ -12,6 +12,8 @@ import androidx.fragment.app.Fragment;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
 
+import Model.MidiController;
+
 public class MainSwipeContainer extends Fragment {
 
     private static final String ARG_PARAM1 = "param1";
@@ -97,4 +99,11 @@ public class MainSwipeContainer extends Fragment {
 
         return view;
     }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        MidiController.getInstance().close();
+    }
+
 }
