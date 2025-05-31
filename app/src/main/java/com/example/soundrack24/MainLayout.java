@@ -3,6 +3,7 @@ package com.example.soundrack24;
 
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Color;
 import com.google.android.material.button.MaterialButton;
 import android.media.midi.MidiDevice;
@@ -25,6 +26,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.fragment.app.Fragment;
+
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -272,6 +276,25 @@ public class MainLayout extends Fragment {
         btnClose.setOnClickListener(v -> helpDialog.dismiss());
 
         helpDialog.show();
+
+        TextView userNameText = layout.findViewById(R.id.userNameText);
+        MaterialButton signOutBtn = layout.findViewById(R.id.btnSignOut);
+
+        // Assuming FirebaseAuth is setup
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user != null) {
+            userNameText.setText("User: " + user.getDisplayName());
+        } else {
+            userNameText.setText("User: Guest");
+        }
+
+        signOutBtn.setOnClickListener(v -> {
+            FirebaseAuth.getInstance().signOut();
+            startActivity(new Intent(getContext(), LoginActivity.class));
+            requireActivity().finish();
+            helpDialog.dismiss();
+        });
+
         Window window = helpDialog.getWindow();
         if (window != null) {
             WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams();
