@@ -6,6 +6,40 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
+    <!-- USER HEADER -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="12dp">
+
+        <TextView
+            android:id="@+id/userNameText"
+            android:text="User: loading..."
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSignOut"
+            android:text="Sign Out"
+            android:textColor="#FFFFFF"
+            app:backgroundTint="#F44336"
+            app:cornerRadius="8dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#777777"
+        android:layout_marginBottom="16dp" />
+
+    <!-- INFO CONTENT -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
