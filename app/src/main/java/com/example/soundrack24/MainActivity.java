@@ -23,7 +23,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.main, new MainLayout())
+                    .replace(R.id.fragment_container, new MainSwipeContainer())
                     .commit();
         }
     }
