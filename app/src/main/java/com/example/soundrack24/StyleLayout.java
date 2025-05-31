@@ -319,7 +319,7 @@ public class StyleLayout extends Fragment {
         }, 150);
         handler.postDelayed(() -> {
             try {
-                midiInputPort.send(new byte[]{(byte) 0xC0, (byte) (program - 1)}, 0, 2); // Program -1 here!
+                midiInputPort.send(new byte[]{(byte) 0xC0, (byte) (program)}, 0, 2); // Program -1 here!
             } catch (IOException ignored) {}
         }, 150);
     }
