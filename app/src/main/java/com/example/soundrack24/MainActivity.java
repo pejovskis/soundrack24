@@ -1,6 +1,7 @@
 package com.example.soundrack24;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 
 import androidx.activity.EdgeToEdge;
@@ -29,12 +30,16 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
+        // Populate shit only once
+        SharedPreferences prefs = getSharedPreferences("prefs", MODE_PRIVATE);
+        if (!prefs.getBoolean("initialized", false)) {
+            DatabaseHelper.getInstance(this).populateBaseTables();
+            prefs.edit().putBoolean("initialized", true).apply();
+        }
+
         // Proceed to load layout only if user is signed in
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
-
-        DatabaseHelper databaseHelper = DatabaseHelper.getInstance(this);
-        databaseHelper.populateBaseTables();
 
         // Init midi
         MidiController.getInstance().init(this);

@@ -14,7 +14,7 @@ import java.util.concurrent.Executors;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "mydatabase.db";
-    private static final int DATABASE_VERSION = 189;
+    private static final int DATABASE_VERSION = 190;
 
     // Singleton
     private static DatabaseHelper instance;
