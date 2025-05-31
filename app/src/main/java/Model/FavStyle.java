@@ -114,7 +114,7 @@ public class FavStyle implements Serializable {
         db.update(TABLE_FAV_STYLES, values, COLUMN_FAV_STYLE_ID + " = ?", new String[]{String.valueOf(this.id)});
     }
 
-    public boolean isEmpty() {
+    public boolean isFsEmpty() {
         return (name == null || name.isEmpty()) &&
                 (ulocation == null || ulocation.getName() == null || ulocation.getName().isEmpty()) &&
                 (plocation == null || plocation.getName() == null || plocation.getName().isEmpty()) &&

@@ -1,4 +1,3 @@
-// FULL MAINLAYOUT FILE REWRITTEN WITHOUT FAV_INDEX
 package com.example.soundrack24;
 
 import android.app.AlertDialog;
@@ -33,12 +32,13 @@ import java.util.List;
 import Model.ButtonFactory;
 import Model.DatabaseHelper;
 import Model.FavPerformance;
+import Model.FavStyle;
 import Model.Ilocation;
 import Model.MidiController;
 import Model.Plocation;
 import Model.Ulocation;
 
-public class MainLayout extends Fragment {
+public class StyleLayout extends Fragment {
 
     // Fields
     private LinearLayout mainLayout;
@@ -46,15 +46,13 @@ public class MainLayout extends Fragment {
     private MidiDevice midiDevice;
     private MidiInputPort midiInputPort;
     private TextView selectedFavButton;
-    private FavPerformance swapBuffer = null;
+    private FavStyle swapBuffer = null;
     private long swapId = -1;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_main_layout, container, false);
         mainLayout = view.findViewById(R.id.mainLayout);
-        MidiController.getInstance().init(requireContext());
-        midiInputPort = MidiController.getInstance().getPort();
         populateMainLayout();
         return view;
     }
@@ -63,7 +61,7 @@ public class MainLayout extends Fragment {
         mainLayout.removeAllViews();
         mainLayout.setBackgroundColor(Color.BLACK);
         Context ctx = requireContext();
-        List<FavPerformance> favs = DatabaseHelper.getInstance(ctx).getAllFavPerformances(ctx);
+        List<FavStyle> favs = DatabaseHelper.getInstance(ctx).getAllFavStyles(ctx);
 
         // Populating rows
         LinearLayout rowLayout = null;
@@ -76,7 +74,7 @@ public class MainLayout extends Fragment {
             }
 
             long id = i + 1;
-            FavPerformance fp = favs.stream().filter(f -> f.getId() == id).findFirst().orElse(null);
+            FavStyle fs = favs.stream().filter(f -> f.getId() == id).findFirst().orElse(null);
 
             // Create Button & define shit
             TextView btn = ButtonFactory.createDefaultButton(getContext());
@@ -86,17 +84,17 @@ public class MainLayout extends Fragment {
             btn.setLayoutParams(params);
 
             // Add click-event listeners
-            if (fp != null) {
-                btn.setText(fp.getName() != null && !fp.getName().isEmpty() ? fp.getName() : "");
+            if (fs != null) {
+                btn.setText(fs.getName() != null && !fs.getName().isEmpty() ? fs.getName() : "");
                 btn.setOnClickListener(v -> {
                     // If swapping is active
                     if (swapBuffer != null && swapId != -1) {
-                        swapButtons(id, fp, ctx);
+                        swapButtons(id, fs, ctx);
                         return;
                     }
                     // Normal click event
-                    if (!fp.isFpEmpty()) {
-                        clickButton(btn, fp);
+                    if (!fs.isFsEmpty()) {
+                        clickButton(btn, fs);
                     }
                 });
             }
@@ -112,7 +110,7 @@ public class MainLayout extends Fragment {
         }
     }
 
-    private void clickButton(TextView btn, FavPerformance finalFp) {
+    private void clickButton(TextView btn, FavStyle finalFs) {
         // Reset previous selected button, if any
         if (selectedFavButton != null && selectedFavButton != btn) {
             selectedFavButton.setBackground(ButtonFactory.getDefaultButtonDrawable());
@@ -123,28 +121,28 @@ public class MainLayout extends Fragment {
         btn.setBackground(ButtonFactory.getSelectedButtonDrawable());
         btn.setTextColor(Color.BLACK);
 
-        int u = Integer.parseInt(finalFp.getUlocation().getName());
-        int p = Integer.parseInt(finalFp.getPlocation().getName());
-        int iLoc = Integer.parseInt(finalFp.getIlocation().getName());
+        int u = Integer.parseInt(finalFs.getUlocation().getName());
+        int p = Integer.parseInt(finalFs.getPlocation().getName());
+        int iLoc = Integer.parseInt(finalFs.getIlocation().getName());
         int lsb = u - 1;
         int program = 1 + (p - 1) * 8 + (iLoc - 1);
-        setKeyboardPerformance(17, lsb, program - 1);
+        setKeyboardStyle(2, lsb, program - 1);
     }
 
-    private void swapButtons(long id, FavPerformance finalFp, Context ctx) {
-        FavPerformance swapped;
-        if (!swapBuffer.isFpEmpty()) {
-            swapped = new FavPerformance(swapBuffer.getName(), swapBuffer.getUlocation(), swapBuffer.getPlocation(), swapBuffer.getIlocation());
+    private void swapButtons(long id, FavStyle finalFs, Context ctx) {
+        FavStyle swapped;
+        if (!swapBuffer.isFsEmpty()) {
+            swapped = new FavStyle(swapBuffer.getName(), swapBuffer.getUlocation(), swapBuffer.getPlocation(), swapBuffer.getIlocation());
         } else {
-            swapped = new FavPerformance();
+            swapped = new FavStyle();
         }
         swapped.setId(id);
 
-        FavPerformance overwritten;
-        if (!finalFp.isFpEmpty()) {
-            overwritten = new FavPerformance(finalFp.getName(), finalFp.getUlocation(), finalFp.getPlocation(), finalFp.getIlocation());
+        FavStyle overwritten;
+        if (!finalFs.isFsEmpty()) {
+            overwritten = new FavStyle(finalFs.getName(), finalFs.getUlocation(), finalFs.getPlocation(), finalFs.getIlocation());
         } else {
-            overwritten = new FavPerformance();
+            overwritten = new FavStyle();
         }
         overwritten.setId(swapId);
 
@@ -173,8 +171,8 @@ public class MainLayout extends Fragment {
         MaterialButton btnCancel = layout.findViewById(R.id.btnCancel);
         MaterialButton btnSave = layout.findViewById(R.id.btnSave);
 
-        FavPerformance existing = new FavPerformance();
-        existing.loadFavPerformance(id, ctx);
+        FavStyle existing = new FavStyle();
+        existing.loadFavStyle(id, ctx);
 
         if (existing.getName() != null) name.setText(existing.getName());
         if (existing.getUlocation() != null)
@@ -198,15 +196,15 @@ public class MainLayout extends Fragment {
         }
 
         btnSwap.setOnClickListener(v -> {
-            FavPerformance target = new FavPerformance();
-            target.loadFavPerformance(id, ctx);
+            FavStyle target = new FavStyle();
+            target.loadFavStyle(id, ctx);
 
             if (swapBuffer == null) {
                 Ulocation u = getU(ctx, uInput.getText().toString());
                 Plocation p = getP(ctx, pInput.getText().toString());
                 Ilocation i = getI(ctx, iInput.getText().toString());
 
-                swapBuffer = new FavPerformance(name.getText().toString(), u, p, i);
+                swapBuffer = new FavStyle(name.getText().toString(), u, p, i);
                 swapId = id;
                 targetBtn.setBackground(ButtonFactory.getSwapSelectedButtonDrawable());
                 Toast.makeText(ctx, "Selected slot " + id + " for swap", Toast.LENGTH_SHORT).show();
@@ -220,9 +218,9 @@ public class MainLayout extends Fragment {
         });
 
         btnRemove.setOnClickListener(v -> {
-            FavPerformance fp = new FavPerformance();
-            fp.loadFavPerformance(id, ctx);
-            fp.remove(ctx, (int) id);
+            FavStyle fs = new FavStyle();
+            fs.loadFavStyle(id, ctx);
+            fs.remove(ctx);
             populateMainLayout();
             dialog.dismiss();
         });
@@ -230,7 +228,7 @@ public class MainLayout extends Fragment {
         btnCancel.setOnClickListener(v -> dialog.dismiss());
 
         btnSave.setOnClickListener(v -> {
-            FavPerformance f = new FavPerformance(
+            FavStyle f = new FavStyle(
                     name.getText().toString(),
                     getU(ctx, uInput.getText().toString()),
                     getP(ctx, pInput.getText().toString()),
@@ -281,7 +279,8 @@ public class MainLayout extends Fragment {
         }
     }
 
-    private void setKeyboardPerformance(int msb, int lsb, int program) {
+    private void setKeyboardStyle(int msb, int lsb, int program) {
+        midiInputPort = MidiController.getInstance().getPort();
         if (midiInputPort == null) {
             return;
         }

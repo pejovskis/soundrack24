@@ -12,6 +12,7 @@ import androidx.core.view.WindowInsetsCompat;
 import com.google.firebase.auth.FirebaseAuth;
 
 import Model.DatabaseHelper;
+import Model.MidiController;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -35,9 +36,12 @@ public class MainActivity extends AppCompatActivity {
         DatabaseHelper databaseHelper = DatabaseHelper.getInstance(this);
         databaseHelper.populateBaseTables();
 
+        // Init midi
+        MidiController.getInstance().init(this);
+
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.main, new MainLayout())
+                    .replace(R.id.fragment_container, new MainSwipeContainer())
                     .commit();
         }
     }
