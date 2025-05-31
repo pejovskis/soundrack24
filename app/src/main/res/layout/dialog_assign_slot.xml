@@ -98,7 +98,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnHelp"
-            android:text="Help"
+            android:text="More"
             style="@style/DialogButtonStyle"
             app:backgroundTint="#4A4C4E"
             android:layout_marginStart="2dp"

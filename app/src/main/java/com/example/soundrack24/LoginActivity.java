@@ -19,6 +19,7 @@ import androidx.credentials.GetCredentialResponse;
 import androidx.credentials.exceptions.GetCredentialException;
 import androidx.credentials.exceptions.NoCredentialException;
 
+import com.google.android.gms.common.SignInButton;
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import com.google.firebase.auth.AuthCredential;
@@ -44,7 +45,8 @@ public class LoginActivity extends AppCompatActivity {
         executor = Executors.newSingleThreadExecutor();
         cancellationSignal = new CancellationSignal();
 
-        Button loginButton = findViewById(R.id.google_signin_button);
+        SignInButton loginButton = findViewById(R.id.google_signin_button);
+        loginButton.setSize(SignInButton.SIZE_WIDE);
         loginButton.setOnClickListener(v -> initiateSignIn());
     }
 
